@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"rentalMobil/internal/models"
+	"project_article/internal/models"
 	"time"
 
-	"gorm.io/driver/mysql"
+	// "gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	_ "github.com/lib/pq"
 )
 
-func ConnectToMysql() *gorm.DB {
+func ConnectToPostgresql() *gorm.DB {
 	dbUSER := os.Getenv("DB_USER")
-	dbPASWORD := os.Getenv("DB_PASWORD")
+	dbPASWORD := os.Getenv("DB_PASSWORD")
 	dbHOST := os.Getenv("DB_HOST")
 	dbPORT := os.Getenv("DB_PORT")
 	dbDBNAME := os.Getenv("DB_DBNAME")
@@ -31,15 +33,24 @@ func ConnectToMysql() *gorm.DB {
 		},
 	)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: newLogger,
-	})
-	if err != nil {
-		fmt.Println("Error : ", err.Error())
-		return nil
-	}
+	// db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	// 	Logger: newLogger,
+	// })
+	// if err != nil {
+	// 	fmt.Println("Error loading database : ", err.Error())
+	// 	return nil
+	// }
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+        Logger: newLogger,
+    })
+    if err != nil {
+        log.Fatal("Error connecting to the database:", err)
+    }
 
-	db.AutoMigrate(&models.Users{}, &models.Cars{}, &models.Booking{})
+    fmt.Println("Connected to PostgreSQL successfully!")
+
+	db.AutoMigrate(&models.User{}, &models.Category{}, &models.Article{})
+
 
 	return db
 }

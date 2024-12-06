@@ -1,33 +1,29 @@
 package main
 
 import (
-	"fmt"
-	"rentalMobil/internal/routes"
-	"rentalMobil/pkg/database"
-	"rentalMobil/pkg/middleware"
-
-	"github.com/gin-gonic/gin"
-	_ "github.com/joho/godotenv/autoload"
+    "log"
+    "os"
+    "github.com/gin-gonic/gin"
+    "github.com/joho/godotenv"
+    "project_article/internal/routes"
+    "project_article/pkg/database"
 )
 
 func main() {
-	r := gin.Default()
+    if err := godotenv.Load(); err != nil {
+        log.Fatal("Error loading .env file")
+    }
+    secretKey := os.Getenv("JWT_SECRET_KEY")
+    if secretKey == "" {
+        log.Fatal("JWT_SECRET_KEY tidak ditemukan di environment variables")
+    }
+// jwtService := auth.NewJWTService(secretKey)
 
-	db := database.ConnectToMysql()
-	if db != nil {
-		fmt.Println("connected")
-	}
-
-	r.GET("/ping", middleware.AuthJWT(), func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
-	// Routes
-	routes.UserRoutes(r, db)
-	routes.CarsRoutes(r, db)
-	routes.BookingRoutes(r, db)
-
-	r.Run()
+    db := database.ConnectToPostgresql()
+    
+    r := gin.Default()
+    
+    routes.SetupRoutes(r, db)
+    
+    r.Run(":8080")
 }

@@ -1,21 +1,25 @@
 package common
 
-type RespCreate struct {
-	Success     bool   `json:"success"`
-	Message     string `json:"message"`
-	ReferenceID string `json:"reference_id"`
-	Data        any    `json:"data"`
-}
-
-type RespList struct {
-	TotalItem int         `json:"total_item"`
-	Success   bool        `json:"success"`
-	Message   string      `json:"message"`
-	Data      interface{} `json:"data"`
-}
-
-type RespDetail struct {
-	Success bool        `json:"success"`
+type Response struct {
+	Status  bool        `json:"status"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Errors  []string   `json:"errors,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func BuildResponse(status bool, message string, data interface{}) Response {
+	return Response{
+		Status:  status,
+		Message: message,
+		Data:    data,
+	}
+}
+
+func BuildErrorResponse(message string, err string, data interface{}) Response {
+	return Response{
+		Status:  false,
+		Message: message,
+		Errors:  []string{err},
+		Data:    data,
+	}
 }
