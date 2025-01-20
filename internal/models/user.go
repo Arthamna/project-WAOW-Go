@@ -7,7 +7,7 @@ import (
 
 const (
 	ROLE_ADMIN = "ADMIN"
-	ROLE_CUST  = "CUSTOMER"
+	ROLE_USER  = "USER"
 )
 
 type User struct {
@@ -23,4 +23,5 @@ type User struct {
     CreatedAt       time.Time      `gorm:"column:created_at"`
     UpdatedAt       time.Time      `gorm:"column:updated_at"`
     DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at"`
+    Articles     []Article      `gorm:"foreignKey:AuthorID;references:UserID"` 
 }

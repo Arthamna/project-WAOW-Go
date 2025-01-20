@@ -15,11 +15,12 @@ type UserRegisterRequest struct {
 }
 
 type UserUpdateRequest struct {
-	Username    string `json:"username" binding:"required"`
-	Email       string `json:"email" binding:"required,email"`
-	Password    string `json:"password" binding:"required,min=6"`
-	DisplayName string `json:"display_name" binding:"required"`
+	Username    string `json:"username" binding:""`
+	Email       string `json:"email" binding:"email"`
+	Password    string `json:"password" binding:""`
+	DisplayName string `json:"display_name" binding:""`
 	Bio         string `json:"bio"`
+	Role        string `json:"role"`
 }
 
 type UserLoginRequest struct {
@@ -27,25 +28,6 @@ type UserLoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type RegisterUserInput struct {
-	Username    string `json:"username" binding:"required"`
-	Email       string `json:"email" binding:"required,email"`
-	Password    string `json:"password" binding:"required,min=6"`
-	DisplayName string `json:"display_name" binding:"required"`
-	Bio         string `json:"bio"`
-}
-
-type LoginInput struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type UpdateUserInput struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Bio         string `json:"bio"`
-	Role        string `json:"role"`
-}
 
 type UserResponse struct {
 	UserID            string    `json:"user_id"`
@@ -60,9 +42,10 @@ type UserResponse struct {
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
-type LoginResponse struct {
-	Token string      `json:"token"`
-	User  *models.User `json:"user"`
+
+type AuthResponse struct{
+	User  UserResponse `json:"user"`
+    Token string       `json:"token"`
 }
 
 func ToUserResponse(user *models.User) *UserResponse {
@@ -86,4 +69,12 @@ func ToUserResponseList(users []models.User) []*UserResponse {
 		responses = append(responses, ToUserResponse(&user))
 	}
 	return responses
+}
+type AdminRegisterRequest struct {
+    Username    string `json:"username" binding:"required"`
+    Email       string `json:"email" binding:"required,email"`
+    Password    string `json:"password" binding:"required,min=6"`
+    DisplayName string `json:"display_name" binding:"required"`
+    Bio         string `json:"bio"`
+    SecretKey   string `json:"secret_key" binding:"required"` 
 }

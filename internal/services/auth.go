@@ -14,24 +14,35 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
 type AuthService struct {
     userRepo *repositories.UserRepository
+    jwtService auth.JWTService
 }
 
 func NewAuthService(db *gorm.DB) *AuthService {
+    secretKey := os.Getenv("JWT_SECRET_KEY")
+    if secretKey == "" {
+        log.Fatal("JWT_SECRET_KEY tidak ditemukan di environment variables")
+    }
+    
     return &AuthService{
-        userRepo: repositories.NewUserRepository(db),
+        userRepo:    repositories.NewUserRepository(db),
+        jwtService:  auth.NewJWTService(secretKey),
     }
 }
 
-func (s *AuthService) Register(req dtos.UserRegisterRequest) (*dtos.UserResponse, error) {
-    // Hash password
+func (s *AuthService) Register(req dtos.UserRegisterRequest) (*dtos.AuthResponse, error) {
+    existingUser, _ := s.userRepo.FindByEmail(req.Email)
+    if existingUser != nil {
+        return nil, errors.New("email already registered")
+    }
+
     hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
     if err != nil {
         return nil, err
     }
 
+    // Buat user baru
     user := &models.User{
         UserID:           uuid.New().String(),
         Username:         req.Username,
@@ -45,39 +56,88 @@ func (s *AuthService) Register(req dtos.UserRegisterRequest) (*dtos.UserResponse
         UpdatedAt:       time.Now(),
     }
 
-    if _, err := s.userRepo.Create(user); err != nil {
+    createdUser, err := s.userRepo.Create(user)
+    if err != nil {
         return nil, err
     }
 
-    return &dtos.UserResponse{
-        UserID:      user.UserID,
-        Username:    user.Username,
-        Email:       user.Email,
-        DisplayName: user.DisplayName,
-        Role:        user.Role,
+    token, err := s.jwtService.GenerateToken(user)
+    if err != nil {
+        return nil, err
+    }
+
+    return &dtos.AuthResponse{
+        User:  *dtos.ToUserResponse(createdUser),
+        Token: token,
     }, nil
 }
 
-func (s *AuthService) Login(req dtos.UserLoginRequest) (string, error) {
+func (s *AuthService) RegisterAdmin(input dtos.AdminRegisterRequest) (*dtos.AuthResponse, error) {
+    expectedKey := os.Getenv("ADMIN_SECRET_KEY")
+    if expectedKey == "" {
+        return nil, errors.New("admin secret key not configured")
+    }
+    if input.SecretKey != expectedKey {
+        return nil, errors.New("invalid admin secret key")
+    }
+
+    existingUser, _ := s.userRepo.FindByEmail(input.Email)
+    if existingUser != nil {
+        return nil, errors.New("email already registered")
+    }
+
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return nil, err
+    }
+
+    user := &models.User{
+        UserID:           uuid.New().String(),
+        Username:         input.Username,
+        Email:           input.Email,
+        PasswordHash:    string(hashedPassword),
+        DisplayName:     input.DisplayName,
+        Bio:             input.Bio,
+        ProfilePictureURL: "#",
+        Role:            "ADMIN",  
+        RegistrationDate: time.Now(),
+        CreatedAt:       time.Now(),
+        UpdatedAt:       time.Now(),
+    }
+
+    createdUser, err := s.userRepo.Create(user)
+    if err != nil {
+        return nil, err
+    }
+
+    token, err := s.jwtService.GenerateToken(user)
+    if err != nil {
+        return nil, err
+    }
+
+    return &dtos.AuthResponse{
+        User:  *dtos.ToUserResponse(createdUser),
+        Token: token,
+    }, nil
+}
+
+func (s *AuthService) Login(req dtos.UserLoginRequest) (*dtos.AuthResponse, error) {
     user, err := s.userRepo.FindByEmail(req.Email)
     if err != nil {
-        return "", errors.New("invalid credentials")
+        return nil, errors.New("invalid email")
     }
 
     if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-        return "", errors.New("invalid credentials")
+        return nil, errors.New("invalid password")
     }
-	secretKey := os.Getenv("JWT_SECRET_KEY")
-    if secretKey == "" {
-        log.Fatal("JWT_SECRET_KEY tidak ditemukan di environment variables")
-    }
-	jwtService := auth.NewJWTService(secretKey) 
-    token, err := jwtService.GenerateToken(user)
+
+    token, err := s.jwtService.GenerateToken(user)
     if err != nil {
-        return "", err
+        return nil, err
     }
 
-    return token, nil
-
-    // return auth.GenerateToken(user.UserID, user.Role)
+    return &dtos.AuthResponse{
+        User:  *dtos.ToUserResponse(user),
+        Token: token,
+    }, nil
 }

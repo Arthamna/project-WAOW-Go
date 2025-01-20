@@ -13,9 +13,9 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
     {
         auth.POST("/register", handlers.Register(db))
         auth.POST("/login", handlers.Login(db))
+        auth.POST("/admin/register", handlers.RegisterAdmin(db))
     }
 
-    // Protected routes
     api := r.Group("/api")
     api.Use(middleware.AuthMiddleware())
     {

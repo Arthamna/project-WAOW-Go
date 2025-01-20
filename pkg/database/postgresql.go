@@ -7,7 +7,6 @@ import (
 	"project_article/internal/models"
 	"time"
 
-	// "gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -15,32 +14,25 @@ import (
 )
 
 func ConnectToPostgresql() *gorm.DB {
-	dbUSER := os.Getenv("DB_USER")
-	dbPASWORD := os.Getenv("DB_PASSWORD")
-	dbHOST := os.Getenv("DB_HOST")
-	dbPORT := os.Getenv("DB_PORT")
-	dbDBNAME := os.Getenv("DB_DBNAME")
+    dbUSER := os.Getenv("DB_USER")
+    dbPASSWORD := os.Getenv("DB_PASSWORD")
+    dbHOST := os.Getenv("DB_HOST")
+    dbPORT := os.Getenv("DB_PORT")
+    dbDBNAME := os.Getenv("DB_DBNAME")
 
-	// user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUSER, dbPASWORD, dbHOST, dbPORT, dbDBNAME)
+    dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=prefer",
+        dbHOST, dbUSER, dbPASSWORD, dbDBNAME, dbPORT)
 
-	newLogger := logger.New(
-		log.New(log.Writer(), "\r\n", log.LstdFlags), // Output to standard logger
-		logger.Config{
-			SlowThreshold: time.Second, // Log queries slower than this
-			LogLevel:      logger.Info, // Log level
-			Colorful:      true,        // Enable color output
-		},
-	)
+    newLogger := logger.New(
+        log.New(log.Writer(), "\r\n", log.LstdFlags),
+        logger.Config{
+            SlowThreshold: time.Second,
+            LogLevel:      logger.Info,
+            Colorful:      true,
+        },
+    )
 
-	// db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-	// 	Logger: newLogger,
-	// })
-	// if err != nil {
-	// 	fmt.Println("Error loading database : ", err.Error())
-	// 	return nil
-	// }
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
         Logger: newLogger,
     })
     if err != nil {
@@ -49,8 +41,22 @@ func ConnectToPostgresql() *gorm.DB {
 
     fmt.Println("Connected to PostgreSQL successfully!")
 
-	db.AutoMigrate(&models.User{}, &models.Category{}, &models.Article{})
+    if err := AutoMigrateAll(db); err != nil {
+        log.Fatal(err)
+    }
 
-
-	return db
+        return db
 }
+
+func AutoMigrateAll(db *gorm.DB) error {
+        // db.Migrator().DropConstraint(&models.Article{}, "fk_categories_articles")
+        // db.Migrator().DropConstraint(&models.Article{}, "fk_articles_author")
+        // db.Migrator().DropTable(&models.Category{}, &models.User{} , &models.Article{}) //refresh table if u have to
+        
+        if err := db.AutoMigrate(&models.User{}, &models.Category{}, &models.Article{}); err != nil {
+            return err
+        }
+        
+        return nil
+}
+

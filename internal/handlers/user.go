@@ -9,42 +9,33 @@ import (
     "gorm.io/gorm"
 )
 
+// type UserHandler struct {
+//     userService services.UserService
+// }
+
 func GetUsers(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-        userRepo := repositories.NewUserRepository(db)
-        jwtService := services.NewJWTService("your-secret-key")
-        userService := services.NewUserService(*userRepo, jwtService) 
-        users, err := userService.GetAllUsers()
+        userRepository := repositories.NewUserRepository(db)
+        userService := services.NewUserService(*userRepository)
+        users, err := services.UserService.GetAllUsers(userService)
         if err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
             return
         }
-
         c.JSON(http.StatusOK, users)
     }
 }
 
 func CreateUser(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
-
         var request dtos.UserRegisterRequest
         if err := c.ShouldBindJSON(&request); err != nil {
             c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
             return
         }
-
-        input := dtos.RegisterUserInput{
-            Username:    request.Username,
-            Email:       request.Email,
-            Password:    request.Password,
-            DisplayName: request.DisplayName,
-            Bio:         request.Bio,
-        }
-
-        userRepo := repositories.NewUserRepository(db)
-        jwtService := services.NewJWTService("your-secret-key")
-        userService := services.NewUserService(*userRepo, jwtService) 
-        user, err := userService.Register(input)
+        
+        authService := services.NewAuthService(db)
+        user, err := authService.Register(request)
         if err != nil {
             c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
             return
@@ -56,6 +47,8 @@ func CreateUser(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateUser(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
+        userRepository := repositories.NewUserRepository(db)
+        userService := services.NewUserService(*userRepository)
         id := c.Param("id")
         var request dtos.UserUpdateRequest
         if err := c.ShouldBindJSON(&request); err != nil {
@@ -63,17 +56,9 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
             return
         }
 
-        input := dtos.UpdateUserInput{
-            Username:    request.Username,
-            DisplayName: request.DisplayName,
-            Bio:         request.Bio,
-            Role:        "", 
-        }
+        input := dtos.UserUpdateRequest(request)
 
-        userRepo := repositories.NewUserRepository(db)
-        jwtService := services.NewJWTService("your-secret-key")
-        userService := services.NewUserService(*userRepo, jwtService) 
-        user, err := userService.UpdateUser(id, input)
+        user, err := services.UserService.UpdateUser(userService ,id, input)
         if err != nil {
             c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
             return
@@ -85,11 +70,10 @@ func UpdateUser(db *gorm.DB) gin.HandlerFunc {
 
 func DeleteUser(db *gorm.DB) gin.HandlerFunc {
     return func(c *gin.Context) {
+        userRepository := repositories.NewUserRepository(db)
+        userService := services.NewUserService(*userRepository)
         id := c.Param("id")
-        userRepo := repositories.NewUserRepository(db)
-        jwtService := services.NewJWTService("your-secret-key")
-        userService := services.NewUserService(*userRepo, jwtService)  
-        err := userService.DeleteUser(id)
+        err := services.UserService.DeleteUser(userService,id)
         if err != nil {
             c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
             return
@@ -98,4 +82,3 @@ func DeleteUser(db *gorm.DB) gin.HandlerFunc {
         c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
     }
 }
-
