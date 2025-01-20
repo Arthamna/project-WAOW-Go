@@ -1,4 +1,3 @@
-# project-WAOW-Go
 <div align="center">
     <a href=""><h1 align="center">Article Database</h1></a>
 
