@@ -1,9 +1,9 @@
 <div align="center">
-    <a href=""><h1 align="center">Article Database</h1></a>
+    <a href=""><h1 align="center">API Article Management</h1></a>
 
 This is project as result from workshop by Telkom University Surabaya,
 For documentation, check this [site](https://shocking-viburnum-4f3.notion.site/API-Article-Documentation-17a02e32cdb5802b978cf078d0edc22f?pvs=4).
-(It is on progress).
+(Still on progress though).
 </div>
 
 ## How To Run This Project
